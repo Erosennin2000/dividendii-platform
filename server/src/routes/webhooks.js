@@ -70,15 +70,19 @@ router.post('/bluum', async (req, res) => {
     return res.status(200).json({ received: true, duplicate: true })
   }
 
-  // Answer first, work afterwards.
-  res.status(200).json({ received: true })
-
+  // The work is done before answering. On a long-running server it would be
+  // safe to answer first, but a serverless instance can be frozen as soon as
+  // the response is sent, and the handler would never run. Handlers here are
+  // short. A failure answers 500 so Bluum retries, and the stored event means
+  // a retry is recognised rather than processed twice.
   try {
     await handleEvent(eventType, payload)
     await webhookEvents.markProcessed(stored.id)
+    return res.status(200).json({ received: true })
   } catch (error) {
     console.error(`[webhook] ${eventType} failed`, error)
     await webhookEvents.markProcessed(stored.id, String(error?.message || error))
+    return res.status(500).json({ error: { code: 'handler_failed', message: 'Stored, but not yet handled.' } })
   }
 })
 

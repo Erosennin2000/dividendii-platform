@@ -57,6 +57,13 @@ applying for an offer holds cash rather than spending it, that the same
 idempotency key does not pay twice, and that a webhook with a bad signature is
 refused but still recorded.
 
+## Deploying
+
+`vercel.json` sets this up as one Vercel project with two services, the API at
+`/api/*` and the screens at `/*`, on one domain. Read `docs/VERCEL.md` first:
+serverless changes two things that matter, and the sample data does not
+survive it.
+
 ## Connecting Bluum
 
 1. Get a **sandbox** key from Bluum and put it in `server/.env`:

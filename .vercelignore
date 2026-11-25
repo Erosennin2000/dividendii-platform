@@ -1,0 +1,7 @@
+# Never upload these to a build.
+.env
+.env.*
+.kyc-uploads/
+server/.kyc-uploads/
+web/test/screenshots/
+docs/

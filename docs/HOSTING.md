@@ -23,6 +23,14 @@ Dividendii customer's account. So the key sits on the server, the browser asks
 the server, and the server asks Bluum. There is no way around this. It is why
 there has to be a server at all.
 
+> **Since this was written, you tried Vercel.** Vercel is a third kind of
+> host: "serverless", where your code is not left running but is started for
+> each request and stopped again. It handles Bluum's messages perfectly well,
+> so the paragraph below about something needing to be awake is too strong for
+> that kind of host. What a serverless host cannot do is remember anything
+> between requests, which is why a database stops being optional. See
+> `VERCEL.md`.
+
 ## Why cPanel alone is not enough
 
 Your current hosting runs PHP, which works differently: the page is built fresh

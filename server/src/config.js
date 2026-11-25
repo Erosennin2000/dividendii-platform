@@ -45,6 +45,22 @@ if (bluumEnv === 'production' && !bool(env.BLUUM_ALLOW_PRODUCTION)) {
   warnings.push('BLUUM_ENV=production without BLUUM_ALLOW_PRODUCTION=true. Using the sandbox URL.')
 }
 
+// Serverless instances start, serve and stop. Anything kept in this
+// process's memory is lost without warning, so say so loudly rather than
+// letting it look like data loss later.
+if (env.VERCEL) {
+  if (!env.DATABASE_URL) {
+    warnings.push(
+      'Running serverless with no DATABASE_URL. Logins, gifts and webhook records will vanish between requests. Set DATABASE_URL.',
+    )
+  }
+  if (mode === 'mock') {
+    warnings.push(
+      'Running serverless in mock mode. The sample data lives in memory, so holdings and orders will reset unpredictably. Use it for a look around, not a demo.',
+    )
+  }
+}
+
 export const config = {
   port: Number(env.PORT || 4000),
   webOrigin: env.WEB_ORIGIN || 'http://localhost:5173',
@@ -78,7 +94,9 @@ export const config = {
   kyc: {
     storage: (env.KYC_STORAGE || 'forward-only').toLowerCase(), // 'forward-only' | 'store'
     dir: env.KYC_DIR || './.kyc-uploads',
-    maxFileBytes: Number(env.KYC_MAX_FILE_BYTES || 10 * 1024 * 1024),
+    // Serverless platforms cap a request body at about 4.5 MB, so this is
+    // set under it. On a server of your own it can be raised.
+    maxFileBytes: Number(env.KYC_MAX_FILE_BYTES || 4 * 1024 * 1024),
   },
 
   markets: list(env.MARKETS, ['NG', 'US', 'KE']),
