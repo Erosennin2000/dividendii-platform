@@ -27,21 +27,23 @@ const list = (data) => ({ object: 'list', data, has_more: false })
 // ---------------------------------------------------------------------------
 const ASSET_SEED = [
   // Nigeria (XNSA, NGN)
-  ['DANGCEM', 'Dangote Cement', 'equity', 'ng', 'NGN', 'XNSA', 485.5, true],
-  ['MTNN', 'MTN Nigeria Communications', 'equity', 'ng', 'NGN', 'XNSA', 236.8, true],
-  ['GTCO', 'Guaranty Trust Holding', 'equity', 'ng', 'NGN', 'XNSA', 46.25, true],
-  ['ZENITHBANK', 'Zenith Bank', 'equity', 'ng', 'NGN', 'XNSA', 38.9, true],
+  ['DANGCEM', 'Dangote Cement', 'equity', 'ng', 'NGN', 'XNSA', 480.0, true],
+  ['SEPLAT', 'Seplat Energy', 'equity', 'ng', 'NGN', 'XNSA', 5420.0, true],
+  ['STANBIC', 'Stanbic IBTC Holdings', 'equity', 'ng', 'NGN', 'XNSA', 78.4, true],
+  ['MTNN', 'MTN Nigeria Communications', 'equity', 'ng', 'NGN', 'XNSA', 420.5, true],
+  ['GTCO', 'Guaranty Trust Holding', 'equity', 'ng', 'NGN', 'XNSA', 61.9, true],
+  ['ZENITHBANK', 'Zenith Bank', 'equity', 'ng', 'NGN', 'XNSA', 52.3, true],
   ['NESTLE', 'Nestle Nigeria', 'equity', 'ng', 'NGN', 'XNSA', 1210.0, true],
   ['SERESNGX30', 'Sample NGX 30 ETF', 'etf', 'ng', 'NGN', 'XNSA', 28.4, true],
   // United States (XNAS/XNYS, USD)
-  ['AAPL', 'Apple Inc.', 'equity', 'us', 'USD', 'XNAS', 179.25, true],
+  ['AAPL', 'Apple Inc.', 'equity', 'us', 'USD', 'XNAS', 228.4, true],
   ['MSFT', 'Microsoft Corporation', 'equity', 'us', 'USD', 'XNAS', 412.6, true],
-  ['NVDA', 'NVIDIA Corporation', 'equity', 'us', 'USD', 'XNAS', 138.4, true],
+  ['NVDA', 'NVIDIA Corporation', 'equity', 'us', 'USD', 'XNAS', 142.8, true],
   ['KO', 'The Coca-Cola Company', 'equity', 'us', 'USD', 'XNYS', 62.15, true],
-  ['VOO', 'Vanguard S&P 500 ETF', 'etf', 'us', 'USD', 'XNYS', 521.3, true],
+  ['VOO', 'Vanguard S&P 500 ETF', 'etf', 'us', 'USD', 'XNYS', 528.9, true],
   ['SCHD', 'Schwab US Dividend Equity ETF', 'etf', 'us', 'USD', 'XNYS', 27.85, true],
   // Kenya (XNAI, KES)
-  ['SCOM', 'Safaricom', 'equity', 'ke', 'KES', 'XNAI', 17.6, true],
+  ['SCOM', 'Safaricom', 'equity', 'ke', 'KES', 'XNAI', 17.65, true],
   ['EQTY', 'Equity Group Holdings', 'equity', 'ke', 'KES', 'XNAI', 44.9, true],
   ['KCB', 'KCB Group', 'equity', 'ke', 'KES', 'XNAI', 38.15, true],
 ]
@@ -51,6 +53,13 @@ const BOND_SEED = [
   ['912797LK9', 'US Treasury Bill, sample 3-month', 'bill', 'us', 'USD', 99.42, 1000, 'treasury'],
   ['91282CJK8', 'US Treasury Note, sample 2-year', 'note', 'us', 'USD', 99.875, 1000, 'treasury'],
   ['037833EN2', 'Sample Corporate Note 2031', 'bond', 'us', 'USD', 101.25, 2000, 'corporate'],
+  // Sample sovereign bonds in the other two currencies, so the bond shelf has
+  // all three markets. Coupons, yields and dates are invented.
+  ['FGN2034', 'Federal Government of Nigeria 2034', 'bond', 'ng', 'NGN', 98.4, 1000, 'treasury', { coupon: '18.500', maturity: '2034-03-15', ytm: '17.80', accrued: '1.85' }],
+  ['FGN2031', 'Federal Government of Nigeria 2031', 'bond', 'ng', 'NGN', 96.2, 1000, 'treasury', { coupon: '16.250', maturity: '2031-04-18', ytm: '17.10', accrued: '0.95' }],
+  ['FGN2027', 'Federal Government of Nigeria 2027', 'bond', 'ng', 'NGN', 99.1, 1000, 'treasury', { coupon: '17.000', maturity: '2027-01-18', ytm: '17.60', accrued: '3.10' }],
+  ['UST2034', 'US Treasury Note 2034', 'note', 'us', 'USD', 99.6, 1000, 'treasury', { coupon: '4.250', maturity: '2034-02-15', ytm: '4.31', accrued: '0.31' }],
+  ['GOK2031', 'Government of Kenya 2031', 'bond', 'ke', 'KES', 97.1, 50000, 'treasury', { coupon: '13.200', maturity: '2031-06-10', ytm: '13.90', accrued: '0.70' }],
 ]
 
 function buildAssets() {
@@ -72,7 +81,7 @@ function buildAssets() {
       price: money(price),
     })
   }
-  for (const [symbol, name, cls, country, currency, cleanPrice, minIncrement, kind] of BOND_SEED) {
+  for (const [symbol, name, cls, country, currency, cleanPrice, minIncrement, kind, extra = {}] of BOND_SEED) {
     out.set(symbol, {
       id: randomUUID(),
       object: 'asset',
@@ -92,16 +101,17 @@ function buildAssets() {
         min_increment: String(minIncrement),
         // A bill pays no coupon: it is bought below face value and redeemed
         // at face value. Notes and bonds pay one twice a year.
-        coupon_rate: cls === 'bill' ? null : kind === 'treasury' ? '4.250' : '5.600',
+        coupon_rate: cls === 'bill' ? null : extra.coupon || (kind === 'treasury' ? '4.250' : '5.600'),
+        yield_to_maturity: extra.ytm || null,
         coupon_frequency: cls === 'bill' ? null : 'semi_annual',
-        maturity_date:
-          cls === 'bill'
+        maturity_date: extra.maturity ||
+          (cls === 'bill'
             ? new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10)
             : cls === 'note'
               ? new Date(Date.now() + 2 * 365 * 864e5).toISOString().slice(0, 10)
-              : '2031-05-15',
-        accrued_interest: cls === 'bill' ? '0.00' : '0.42', // percent of par, illustrative
-        settlement_convention: kind === 'treasury' ? 'T+1' : 'T+2',
+              : '2031-05-15'),
+        accrued_interest: extra.accrued || (cls === 'bill' ? '0.00' : '0.42'), // percent of par, illustrative
+        settlement_convention: kind === 'treasury' && country === 'us' ? 'T+1' : 'T+2',
       },
     })
   }
@@ -861,8 +871,34 @@ on('GET', /^\/assets\/batch$/, (_m, { query }) => {
   return list(symbols.map((s) => assetOrThrow(s)))
 })
 
+// A small deterministic generator, so the same symbol always draws the same
+// sample chart and the same sample move. Real prices replace all of this.
+function seedOf(text) {
+  let h = 2166136261
+  for (const ch of String(text)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619)
+  return h >>> 0
+}
+function rng(seed) {
+  let a = seed || 1
+  return () => {
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+export const sampleMovePercent = (symbol) => Number((((seedOf(symbol) % 460) - 210) / 100).toFixed(2)) // -2.10 to +2.49
+export function sampleWalk(symbol, end, count, volatility = 0.012) {
+  const r = rng(seedOf(symbol))
+  const drift = ((seedOf(symbol + 'd') % 100) - 35) / 100 * 0.0016
+  const out = [end]
+  for (let i = 1; i < count; i++) out.push(out[i - 1] / (1 + drift + (r() - 0.5) * 2 * volatility))
+  return out.reverse()
+}
+
 function quoteFor(asset) {
   const price = Number(asset.price)
+  const pct = sampleMovePercent(asset.symbol)
   const spread = price * 0.0012
   return {
     object: 'quote',
@@ -872,8 +908,8 @@ function quoteFor(asset) {
     bid_price: money(price - spread),
     ask_price: money(price + spread),
     // Illustrative movement so the UI's up and down states are exercised.
-    change: money(price * 0.004),
-    change_percent: '0.40',
+    change: money((price * pct) / (100 + pct)),
+    change_percent: pct.toFixed(2),
     price_source: 'MOCK',
     price_confidence: 'SAMPLE',
     timestamp: nowIso(),
@@ -889,9 +925,9 @@ on('GET', /^\/assets\/([^/]+)\/bars$/, (m, { query }) => {
   const asset = assetOrThrow(decodeURIComponent(m[1]))
   const count = Number(query?.limit || 30)
   const base = Number(asset.price)
+  const walk = sampleWalk(asset.symbol, base, count)
   const bars = Array.from({ length: count }, (_, i) => {
-    const drift = Math.sin(i / 3) * base * 0.02
-    const close = base - drift
+    const close = walk[i]
     return {
       t: new Date(Date.now() - (count - i) * 864e5).toISOString().slice(0, 10),
       o: money(close * 0.998),

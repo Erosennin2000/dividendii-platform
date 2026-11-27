@@ -22,72 +22,9 @@ const METHODS = [
   { value: 'international_wire', label: 'International wire', note: 'From a bank outside the country.' },
 ]
 
-export default function Money() {
-  const { isSampleData } = useSession()
-  const wallets = useLoad(() => api.money.wallets())
-  const deposits = useLoad(() => api.money.deposits())
-  const sources = useLoad(() => api.money.fundingSources())
-  const transactions = useLoad(() => api.money.transactions())
+export { METHODS, CURRENCIES }
 
-  const [tab, setTab] = useState('add')
-
-  const reloadAll = () => {
-    wallets.reload()
-    deposits.reload()
-    transactions.reload()
-  }
-
-  return (
-    <div className="stack">
-      <div className="page-head">
-        <h1>Money</h1>
-        <p>Your cash, in each currency, and how to move it.</p>
-      </div>
-
-      <Card title="Your wallets">
-        {wallets.loading ? (
-          <Loading rows={3} />
-        ) : (
-          <div className="grid g3">
-            {(wallets.data || []).map((w) => (
-              <div key={w.id}>
-                <div className="muted xs">{w.currency}</div>
-                <div style={{ fontSize: 22, fontWeight: 700 }}>{formatMoney(w.available_balance, w.currency)}</div>
-                <div className="xs muted">
-                  Settled {formatMoney(w.settled_balance, w.currency)}
-                  {Number(w.reserved_balance) > 0 && ` · held ${formatMoney(w.reserved_balance, w.currency)}`}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <div className="wrap">
-        <Segmented
-          options={[
-            { value: 'add', label: 'Add money' },
-            { value: 'take', label: 'Withdraw' },
-            { value: 'banks', label: 'Bank accounts' },
-            { value: 'history', label: 'History' },
-          ]}
-          value={tab}
-          onChange={setTab}
-          label="What to do"
-        />
-      </div>
-
-      {tab === 'add' && (
-        <AddMoney sources={sources.data || []} deposits={deposits} onDone={reloadAll} isSampleData={isSampleData} />
-      )}
-      {tab === 'take' && <Withdraw sources={sources.data || []} wallets={wallets.data || []} onDone={reloadAll} />}
-      {tab === 'banks' && <BankAccounts sources={sources} />}
-      {tab === 'history' && <History transactions={transactions} />}
-    </div>
-  )
-}
-
-function AddMoney({ sources, deposits, onDone, isSampleData }) {
+export function AddMoney({ sources, deposits, onDone, isSampleData }) {
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('NGN')
   const [method, setMethod] = useState('manual_bank_transfer')
@@ -266,7 +203,7 @@ function AddMoney({ sources, deposits, onDone, isSampleData }) {
   )
 }
 
-function Withdraw({ sources, wallets, onDone }) {
+export function Withdraw({ sources, wallets, onDone }) {
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('NGN')
   const [fundingSource, setFundingSource] = useState('')
@@ -392,7 +329,7 @@ function Withdraw({ sources, wallets, onDone }) {
   )
 }
 
-function BankAccounts({ sources }) {
+export function BankAccounts({ sources }) {
   const [adding, setAdding] = useState(false)
   const [form, setForm] = useState({ bank_name: '', account_number: '', currency: 'NGN', type: 'bank_account' })
   const [busy, setBusy] = useState(false)
@@ -476,42 +413,3 @@ function BankAccounts({ sources }) {
   )
 }
 
-function History({ transactions }) {
-  return (
-    <Card title="Everything that has happened" flush>
-      {transactions.loading ? (
-        <div className="card-body">
-          <Loading rows={5} />
-        </div>
-      ) : !(transactions.data || []).length ? (
-        <Empty title="Nothing yet">Deposits, trades and withdrawals all show up here.</Empty>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>What</th>
-              <th>When</th>
-              <th className="num">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.data.map((t) => (
-              <tr key={t.id}>
-                <td>
-                  {t.description || t.type}
-                  {t.symbol && <span className="muted"> · {t.symbol}</span>}
-                </td>
-                <td className="small muted">
-                  {t.created ? formatDateTime(new Date(t.created * 1000).toISOString()) : formatDateTime(t.created_at)}
-                </td>
-                <td className={`num ${String(t.amount).startsWith('-') ? '' : 'up'}`}>
-                  {formatMoney(t.amount, t.currency)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </Card>
-  )
-}

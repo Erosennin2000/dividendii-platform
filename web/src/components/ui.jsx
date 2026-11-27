@@ -1,6 +1,8 @@
 // Small pieces every screen uses. Nothing here knows about Bluum.
 
 import { useEffect, useState } from 'react'
+import { NavLink } from 'react-router-dom'
+import { Icon } from './charts.jsx'
 
 export function Card({ title, action, children, flush, className = '' }) {
   if (!title) return <div className={`card ${className}`}>{children}</div>
@@ -248,3 +250,107 @@ export function useDebounced(value, ms = 350) {
   }, [value, ms])
   return debounced
 }
+
+// ---------------------------------------------------------------------------
+// Added for the console design
+// ---------------------------------------------------------------------------
+
+export const Toggle = ({ on, onChange, label, disabled }) => (
+  <button type="button" role="switch" className="toggle" aria-checked={Boolean(on)} aria-label={label} disabled={disabled} onClick={() => onChange(!on)} />
+)
+
+// Tells the customer a block runs on invented data, until Bluum or a real
+// product sits behind it.
+export const SampleChip = () => <span className="sample-chip">Sample</span>
+
+export function PageHead({ title, sub, children, back }) {
+  return (
+    <div className="page-head">
+      <div>
+        {back && (
+          <NavLink to={back.to} className="crumb">
+            ← {back.label}
+          </NavLink>
+        )}
+        <h1>{title}</h1>
+        {sub && <p>{sub}</p>}
+      </div>
+      {children && <div className="actions">{children}</div>}
+    </div>
+  )
+}
+
+// Tabs that are links, so each tab has its own address.
+export function LinkTabs({ items }) {
+  return (
+    <div className="tabs" role="tablist">
+      {items.map((i) => (
+        <NavLink key={i.to} to={i.to} end role="tab">
+          {i.label}
+        </NavLink>
+      ))}
+    </div>
+  )
+}
+
+export function Tabs({ options, value, onChange, label }) {
+  return (
+    <div className="tabs" role="group" aria-label={label}>
+      {options.map((o) => (
+        <button key={o.value} type="button" aria-pressed={value === o.value} onClick={() => onChange(o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export const Ranges = ({ value, onChange, options = ['1D', '1W', '1M', '3M', '1Y', 'All'] }) => (
+  <div className="ranges" role="group" aria-label="Time range">
+    {options.map((o) => (
+      <button key={o} type="button" aria-pressed={value === o} onClick={() => onChange(o)}>
+        {o}
+      </button>
+    ))}
+  </div>
+)
+
+export const KV = ({ k, v, className = '' }) => (
+  <div className="kv">
+    <span className="muted">{k}</span>
+    <span className={`num ${className}`} style={{ fontWeight: 600, color: className ? undefined : 'var(--ink)' }}>
+      {v}
+    </span>
+  </div>
+)
+
+export const Row = ({ icon, title, sub, right, tone, to }) => {
+  const inner = (
+    <>
+      {icon && (
+        <span className={`ico ${tone || ''}`}>
+          <Icon name={icon} size={18} />
+        </span>
+      )}
+      <div className="grow">
+        <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{title}</div>
+        {sub && <div className="xs muted">{sub}</div>}
+      </div>
+      {right}
+    </>
+  )
+  return to ? (
+    <NavLink to={to} className="list-row" style={{ color: 'inherit' }}>
+      {inner}
+    </NavLink>
+  ) : (
+    <div className="list-row">{inner}</div>
+  )
+}
+
+// Text shown when a feature runs on sample data, so nobody mistakes it.
+export const SampleNote = ({ children }) => (
+  <p className="xs muted" style={{ marginTop: 10 }}>
+    {children || 'Sample data for layout. This is not connected to a real service yet.'}
+  </p>
+)

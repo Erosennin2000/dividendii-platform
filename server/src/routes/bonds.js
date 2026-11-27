@@ -70,6 +70,7 @@ function decorate(asset) {
       maturity_date: bond.maturity_date || null,
       settlement: bond.settlement_convention || null,
       accrued_interest_percent: bond.accrued_interest || null,
+      yield_to_maturity: bond.yield_to_maturity || null,
     },
   }
 }

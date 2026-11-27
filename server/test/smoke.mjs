@@ -289,6 +289,32 @@ await step('the rejected webhook was still recorded', () => call('GET', '/api/we
   return `${r.data.length} events, secret set: ${r.meta.secret_configured}`
 })
 
+// --- Sample-data features (/api/extras) ----------------------------------
+for (const [name, path] of [
+  ['ticker and indexes', '/api/extras/indexes'], ['watchlist', '/api/extras/watchlist'], ['alerts', '/api/extras/alerts'],
+  ['search', '/api/extras/search?q=mtn'], ['value history', '/api/extras/history?currency=NGN&range=3M'],
+  ['notifications', '/api/extras/notifications'], ['news', '/api/extras/news'], ['calendar', '/api/extras/calendar'],
+  ['goals', '/api/extras/goals'], ['auto-invest plans', '/api/extras/plans'], ['statements', '/api/extras/statements'],
+  ['fees', '/api/extras/fees'], ['profile', '/api/extras/profile'], ['security', '/api/extras/security'],
+  ['preferences', '/api/extras/preferences'], ['help', '/api/extras/help'], ['tickets', '/api/extras/tickets'],
+  ['learn', '/api/extras/learn'], ['legal', '/api/extras/legal'], ['funds', '/api/extras/funds'],
+]) {
+  await step(`extras: ${name}`, async () => {
+    const r = await call('GET', path)
+    if (r.data === undefined) throw new Error('no data in the reply')
+    return r
+  }, (r) => (r.meta?.sample ? 'sample' : 'live'))
+}
+await step('extras: follow and unfollow a company', async () => {
+  await call('POST', '/api/extras/watchlist', { symbol: 'GTCO' })
+  const r = await call('DELETE', '/api/extras/watchlist/GTCO')
+  if (r.data.some((x) => x.symbol === 'GTCO')) throw new Error('still on the watchlist')
+})
+await step('extras: open and answer a support ticket', async () => {
+  const t = await call('POST', '/api/extras/tickets', { subject: 'Smoke', message: 'Hello' })
+  await call('POST', `/api/extras/tickets/${t.data.id}/reply`, { message: 'More' })
+})
+
 // --- Errors -------------------------------------------------------------
 await step('a bare UUID in a path is refused with a clear message', async () => {
   const res = await call('GET', '/api/trade/orders/123e4567-e89b-12d3-a456-426614174000', null, { expectStatus: 400 })

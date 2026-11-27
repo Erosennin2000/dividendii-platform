@@ -28,6 +28,7 @@ import portfolioRoutes from './routes/portfolios.js'
 import giftRoutes from './routes/gifts.js'
 import webhookRoutes, { SUBSCRIBED_EVENTS } from './routes/webhooks.js'
 import devRoutes from './routes/dev.js'
+import extrasRoutes from './routes/extras.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -96,6 +97,7 @@ app.use('/api/offerings', offeringRoutes)
 app.use('/api/portfolios', portfolioRoutes)
 app.use('/api/gifts', giftRoutes)
 app.use('/api/webhooks', webhookRoutes)
+app.use('/api/extras', extrasRoutes)
 app.use('/api/dev', devRoutes)
 
 app.use((_req, res) => res.status(404).json({ error: { code: 'not_found', message: 'No such endpoint.' } }))

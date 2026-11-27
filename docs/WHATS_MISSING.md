@@ -81,3 +81,36 @@ own.
 - **English only.**
 - **The sample data is invented.** Every company, price and offer is made up.
   It is labelled on every screen while Bluum is not connected.
+
+
+## 4. The redesign: what runs on sample data
+
+The screens follow the approved 47-screen Hybrid Console and Terminal design.
+Everything that Bluum can do is wired to the Bluum layer (sample mode now,
+live with a key). Everything below has **no Bluum endpoint behind it**, so it
+runs on invented data from `server/src/routes/extras.js`. Each one carries a
+"Sample" chip on screen and `meta.sample: true` in the reply, so nobody mistakes
+it for real.
+
+| Screen | What is invented | What it needs to become real |
+| --- | --- | --- |
+| Watchlist and price alerts | The list is saved per user in memory. Alerts are saved but nothing sends them. | A table for watchlists and alerts, and a job that checks prices and emails. |
+| Home and Portfolio value charts | The history line is a generated walk that ends on today's real value. | Bluum portfolio history, or daily snapshots of your own. |
+| Goals, Auto-invest, Rebalance | Saved in memory. Auto-invest never places an order. Model mixes are invented. | A plans table, a scheduler, and your decision on model portfolios. |
+| Mutual funds (Fund page) | One invented fund. The Invest button is off. | Bluum confirming funds exist for you, or a fund partner. |
+| News and calendar | Invented headlines and events. | A news source. Dividend and offer dates can come from Bluum later. |
+| Maturity choices | The choice (keep as cash or roll over) is saved. Nothing rolls over. | Bluum or an operations process for rollover. |
+| Convert between wallets (Money) | Uses an invented rate and moves nothing. | A currency conversion route at Bluum, or your treasury. |
+| Statements, contract notes, tax summary | Invented documents and a sample contract note. | Real statements from Bluum or generated from your ledger. |
+| Fees page | Schedule with `[TO CONFIRM]` for every fee except Nigerian shares. | Your decision (see section 2, item 5). |
+| Profile checks, sign-in devices, preferences, privacy | Saved in memory. Closing an account only lists what is blocking it. | A users table, a device log, and a closure process agreed with Bluum. |
+| Help, Tickets, Learn, Legal | Sample articles, lessons and legal wording. Tickets stay in memory. | Real content from you and your lawyer, and a help desk or support inbox. |
+| Gifts and Rewards | The invite code and reward are invented. | The reward terms, and the funding route from section 1, item 2. |
+| Status screens | Maintenance, update and offline screens exist. Nothing switches them on by itself yet. | A maintenance flag and an app version check. |
+
+Two other things to know:
+
+- The left menu item "Portfolios" opens **your own portfolio** (design screen
+  28). The curated baskets (design screen 18) moved to **/collections**.
+- Sample data resets whenever the server restarts, unless `DATABASE_URL` is set.
+  Even then, the sample features above are not saved to it yet.

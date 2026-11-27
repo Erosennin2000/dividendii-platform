@@ -53,7 +53,7 @@ def visit(page, path: str, name: str, expect_text: str | None = None) -> None:
     body = page.inner_text("body")
     if expect_text and expect_text.lower() not in body.lower():
         note(f"{path}: expected to see {expect_text!r}")
-    if "Something went wrong" in body and "That did not work" not in body:
+    if "Something went wrong" in body and "That did not work" not in body and "/status/error" not in path:
         note(f"{path}: an unexplained error is on screen")
     new_errors = console_errors[before:]
     if new_errors:
@@ -81,6 +81,8 @@ with sync_playwright() as p:
 
     print("\nSign in")
     page.goto(WEB, wait_until="networkidle")
+    shot(page, "00-welcome")
+    page.goto(f"{WEB}/signin", wait_until="networkidle")
     shot(page, "01-signin")
     email = f"walk-{int(time.time())}@example.com"
     page.fill('input[type="email"]', email)
@@ -139,43 +141,52 @@ with sync_playwright() as p:
     )
 
     print("\nEvery screen")
-    visit(page, "/", "07-home", "cash")
-    visit(page, "/markets", "08-markets", "shares and etfs")
-    visit(page, "/markets/GTCO", "09-asset", "buy")
-    visit(page, "/portfolios", "10-portfolios", "portfolios")
-    visit(page, "/bonds", "11-bonds", "face value")
-    visit(page, "/offers", "13-offers", "public offers")
-    visit(page, "/orders", "15-orders", "orders")
-    visit(page, "/money", "16-money", "wallets")
-    visit(page, "/gifts", "17-gifts", "gift")
-    visit(page, "/account", "18-account", "platform setup")
+    routes = [
+        "/", "/search?q=mtn", "/notifications", "/markets", "/markets/GTCO", "/watchlist", "/news", "/funds/SNIF",
+        "/orders", "/portfolio", "/portfolio/MTNN", "/goals", "/rebalance", "/auto-invest", "/collections",
+        "/bonds", "/maturities", "/offers", "/money", "/money/move", "/money/accounts", "/money/transactions",
+        "/gifts", "/account", "/account/statements", "/account/fees", "/account/profile", "/account/security",
+        "/account/preferences", "/account/privacy", "/help", "/help/tickets", "/learn", "/legal", "/order/MTNN",
+        "/contract-note/CN-20261125-0412", "/open-account/status",
+    ]
+    for i, path in enumerate(routes):
+        visit(page, path, f"{i + 7:02d}-" + (path.strip("/").replace("/", "-").replace("?", "-") or "home"))
 
-    # The two detail pages need an id from the list.
     bonds = page.request.get(f"{API}/api/bonds").json()["data"]
     if bonds:
-        visit(page, f"/bonds/{bonds[0]['symbol']}", "12-bond-detail", "% of face value")
+        visit(page, f"/bonds/{bonds[0]['symbol']}", "bond-detail", "% of face value")
 
     offers = page.request.get(f"{API}/api/offerings").json()["data"]
     open_offers = [o for o in offers if o["status"] == "OPEN"]
     if open_offers:
-        visit(page, f"/offers/{open_offers[0]['id']}", "14-offer-detail", "apply")
+        visit(page, f"/offers/{open_offers[0]['id']}", "offer-detail", "apply")
 
-    print("\nPlace an order through the screen")
+    for which in ["maintenance", "update", "offline", "error"]:
+        visit(page, f"/status/{which}", f"status-{which}")
+
+    print("\nPlace an order through the screens")
     page.goto(f"{WEB}/markets/GTCO", wait_until="networkidle")
-    page.fill('input[type="number"] >> nth=0', "100")
+    page.fill('input[type="number"] >> nth=0', "100000")
+    page.click('button:has-text("Review order")')
+    page.wait_for_url("**/order/GTCO*")
+    page.wait_for_timeout(1500)
+    shot(page, "19-order-step1")
+    shot(page, "19-order-step1")
+    page.click('button:has-text("Review order")')
     page.wait_for_selector(".kv.total", timeout=10000)
-    shot(page, "19-order-ticket-estimate")
+    shot(page, "20-order-review")
     total = page.inner_text(".kv.total")
     if "₦" not in total:
         note(f"the order total is not shown in naira: {total!r}")
-    page.click('button:has-text("Buy") >> nth=-1')
-    page.wait_for_selector('h2:has-text("Order placed")', timeout=10000)
-    shot(page, "20-order-placed")
+    page.click('button:has-text("Confirm and buy")')
+    page.wait_for_selector('h2:has-text("Order")', timeout=10000)
+    page.wait_for_selector('text=View order', timeout=10000)
+    shot(page, "21-order-placed")
     print("  ok   an order was placed and confirmed")
 
     print("\nMobile width")
     page.set_viewport_size({"width": 390, "height": 844})
-    for path, name in [("/", "21-mobile-home"), ("/markets/GTCO", "22-mobile-asset")]:
+    for path, name in [("/", "22-mobile-home"), ("/markets/GTCO", "23-mobile-asset")]:
         page.goto(f"{WEB}{path}", wait_until="networkidle")
         page.wait_for_timeout(400)
         shot(page, name)

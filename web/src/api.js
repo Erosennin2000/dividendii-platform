@@ -133,6 +133,62 @@ export const api = {
 
   webhooks: { recent: () => get('/webhooks/recent') },
 
+  // Everything Bluum has no endpoint for: watchlist, alerts, news, goals,
+  // statements, tickets and so on. Responses carry meta.sample = true.
+  extras: {
+    ticker: () => get('/extras/ticker'),
+    indexes: () => get('/extras/indexes'),
+    rows: (symbols) => get('/extras/rows', { symbols: symbols.join(',') }),
+    watchlist: () => get('/extras/watchlist'),
+    addWatch: (symbol) => post('/extras/watchlist', { symbol }),
+    removeWatch: (symbol) => request('DELETE', `/extras/watchlist/${encodeURIComponent(symbol)}`),
+    alerts: () => get('/extras/alerts'),
+    addAlert: (alert) => post('/extras/alerts', alert),
+    removeAlert: (id) => request('DELETE', `/extras/alerts/${id}`),
+    search: (q) => get('/extras/search', { q }),
+    history: (currency, range) => get('/extras/history', { currency, range }),
+    income: (currency) => get('/extras/income', { currency }),
+    upcoming: () => get('/extras/upcoming'),
+    holdingHistory: (symbol) => get(`/extras/holdings/${encodeURIComponent(symbol)}/history`),
+    setDividend: (symbol, setting) => request('PUT', `/extras/holdings/${encodeURIComponent(symbol)}/dividend`, { body: { setting } }),
+    notifications: () => get('/extras/notifications'),
+    readNotifications: () => post('/extras/notifications/read', {}),
+    attention: () => get('/extras/attention'),
+    news: (symbol) => get('/extras/news', { symbol }),
+    calendar: () => get('/extras/calendar'),
+    goals: () => get('/extras/goals'),
+    addGoal: (goal) => post('/extras/goals', goal),
+    removeGoal: (id) => request('DELETE', `/extras/goals/${id}`),
+    plans: () => get('/extras/plans'),
+    addPlan: (plan) => post('/extras/plans', plan),
+    setPlan: (id, status) => request('PATCH', `/extras/plans/${id}`, { body: { status } }),
+    removePlan: (id) => request('DELETE', `/extras/plans/${id}`),
+    mix: (model, currency) => get('/extras/mix', { model, currency }),
+    maturities: () => get('/extras/maturities'),
+    setMaturity: (symbol, plan) => request('PUT', `/extras/maturities/${encodeURIComponent(symbol)}`, { body: { plan } }),
+    statements: () => get('/extras/statements'),
+    contractNote: (id) => get(`/extras/contract-note/${encodeURIComponent(id)}`),
+    fees: () => get('/extras/fees'),
+    profile: () => get('/extras/profile'),
+    saveProfile: (details) => request('PUT', '/extras/profile', { body: details }),
+    security: () => get('/extras/security'),
+    saveSecurity: (settings) => request('PUT', '/extras/security', { body: settings }),
+    removeDevice: (id) => request('DELETE', `/extras/security/devices/${id}`),
+    signOutOthers: () => post('/extras/security/sign-out-others', {}),
+    preferences: () => get('/extras/preferences'),
+    savePreferences: (prefs) => request('PUT', '/extras/preferences', { body: prefs }),
+    exportData: () => post('/extras/privacy/export', {}),
+    closeAccount: () => post('/extras/privacy/close', {}),
+    help: (q) => get('/extras/help', { q }),
+    tickets: () => get('/extras/tickets'),
+    newTicket: (t) => post('/extras/tickets', t),
+    replyTicket: (id, message) => post(`/extras/tickets/${id}/reply`, { message }),
+    learn: () => get('/extras/learn'),
+    legal: () => get('/extras/legal'),
+    rewards: () => get('/extras/rewards'),
+    funds: () => get('/extras/funds'),
+  },
+
   // Sandbox shortcuts. These endpoints refuse to exist in production.
   dev: {
     approveMe: () => post('/dev/approve-me', {}),
@@ -164,8 +220,31 @@ export const formatQuantity = (q) => {
   return Number.isInteger(n) ? n.toLocaleString() : n.toLocaleString(undefined, { maximumFractionDigits: 6 })
 }
 
+// A price without the currency sign, for tight columns.
+export const formatPrice = (n, decimals = 2) =>
+  Number.isFinite(Number(n))
+    ? Number(n).toLocaleString('en-NG', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    : '—'
+
+// Short money for headlines: ₦28.6m, $142k.
+export function formatShort(amount, currency = 'NGN') {
+  const n = Number(amount)
+  if (!Number.isFinite(n)) return '—'
+  const a = Math.abs(n)
+  const sym = SYMBOLS[currency] || `${currency} `
+  const body = a >= 1e9 ? `${(a / 1e9).toFixed(2)}bn` : a >= 1e6 ? `${(a / 1e6).toFixed(1)}m` : a >= 1e4 ? `${(a / 1e3).toFixed(0)}k` : a.toLocaleString('en-NG', { maximumFractionDigits: 0 })
+  return `${n < 0 ? '-' : ''}${sym}${body}`
+}
+
+export const signed = (n, currency, opts) => `${Number(n) > 0 ? '+' : ''}${formatMoney(n, currency, opts)}`
+export const signedPct = (n, decimals = 2) => `${Number(n) > 0 ? '+' : ''}${Number(n).toFixed(decimals)}%`
+export const tone = (n) => (Number(n) > 0 ? 'up' : Number(n) < 0 ? 'dn' : '')
+
 export const formatPercent = (value, decimals = 2) =>
   Number.isFinite(Number(value)) ? `${Number(value).toFixed(decimals)}%` : '—'
+
+// Bluum reports a transaction time as unix seconds or as an ISO string.
+export const txTime = (t) => (t?.created ? new Date(t.created * 1000).toISOString() : t?.created_at || null)
 
 export const formatDate = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'

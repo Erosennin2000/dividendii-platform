@@ -5,7 +5,7 @@
 // before the first bond order, and this screen will not let the ticket be
 // used until it is signed.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, formatMoney, formatPercent, formatQuantity, formatDate, newKey } from '../api.js'
 import { useLoad, useSession } from '../session.jsx'
@@ -58,6 +58,7 @@ export default function BondDetail() {
               <Row label="Price" value={`${quote?.last_price || asset.price}% of face value`} />
               <Row label="Coupon" value={b.coupon_rate ? `${formatPercent(b.coupon_rate, 3)} a year` : '—'} />
               <Row label="Paid" value={b.coupon_frequency ? b.coupon_frequency.replace('_', ' ') : '—'} />
+              <Row label="Yield to maturity" value={b.yield_to_maturity ? `${formatPercent(b.yield_to_maturity)} a year` : '—'} />
               <Row label="Matures" value={formatDate(b.maturity_date)} />
               <Row label="Smallest order" value={b.min_increment ? `${formatQuantity(b.min_increment)} face value` : '—'} />
               <Row label="Settles" value={b.settlement_convention || '—'} />
@@ -79,6 +80,8 @@ export default function BondDetail() {
               </Notice>
             </div>
           </Card>
+
+          <Schedule asset={asset} bond={b} />
 
           {holding && (
             <Card title="Your holding">
@@ -110,6 +113,50 @@ export default function BondDetail() {
         )}
       </div>
     </div>
+  )
+}
+
+// What the bond pays on a face value, from the coupon and the maturity date.
+// Dates run back from maturity in the bond's payment steps. This is an
+// illustration: the real calendar comes from the bond's own terms at Bluum.
+function Schedule({ asset, bond }) {
+  const defaults = { NGN: 5000000, USD: 10000, KES: 500000 }
+  const [face, setFace] = useState(String(defaults[asset.currency] || 10000))
+  const rows = useMemo(() => {
+    if (!bond.maturity_date || !bond.coupon_rate) return []
+    const f = Number(face) || 0
+    const coupon = (f * Number(bond.coupon_rate)) / 100 / 2
+    const out = []
+    const d = new Date(bond.maturity_date)
+    const now = new Date()
+    while (d > now && out.length < 24) {
+      out.unshift(new Date(d))
+      d.setMonth(d.getMonth() - 6)
+    }
+    const shown = out.length > 5 ? [...out.slice(0, 3), out.at(-1)] : out
+    return shown.map((dt, i) => {
+      const last = dt.getTime() === out.at(-1).getTime()
+      return { date: dt.toISOString().slice(0, 10), what: last ? 'Coupon and face value' : 'Coupon', amount: last ? coupon + f : coupon }
+    })
+  }, [face, bond])
+  if (!rows.length) return null
+  return (
+    <Card title={`What you get on ${formatMoney(face || 0, asset.currency, { decimals: 0 })} face value`} flush>
+      <div className="card-body" style={{ paddingBottom: 0 }}>
+        <Field label={`Face value (${asset.currency})`}>
+          <input type="number" min="0" value={face} onChange={(e) => setFace(e.target.value)} style={{ maxWidth: 220 }} />
+        </Field>
+      </div>
+      <table>
+        <thead><tr><th>Date</th><th>Payment</th><th className="num">Amount</th></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.date}><td>{formatDate(r.date)}</td><td>{r.what}</td><td className="num">{formatMoney(r.amount, asset.currency, { decimals: 0 })}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="card-body"><p className="xs muted">Dates and amounts follow from the coupon and the maturity date. Interest is paid into your wallet.</p></div>
+    </Card>
   )
 }
 
